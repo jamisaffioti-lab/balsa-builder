@@ -80,6 +80,10 @@ label.chk{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14p
 .hint{position:absolute;bottom:10px;left:12px;right:330px;font-size:13px;color:#dfeee6;pointer-events:none;text-shadow:0 1px 2px #0008}
 .mode{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:var(--acc);color:#fff;padding:8px 8px 8px 14px;border-radius:10px;display:none;gap:10px;align-items:center;font-weight:600;font-size:14px;max-width:calc(100% - 20px)}
 .mode.on{display:flex}
+.toast{position:absolute;left:12px;right:332px;bottom:40px;margin:auto;width:fit-content;max-width:calc(100% - 344px);background:#1b1d1a;color:#fff;padding:8px 8px 8px 14px;border-radius:12px;display:none;gap:12px;align-items:center;font-size:14px;box-shadow:0 6px 24px #0006}
+.toast.on{display:flex}
+.toast button{min-height:36px;border:0}
+#tNo{background:#ffffff26;color:#fff}
 .mode button{background:#fff;color:#1b1d1a;border:0;min-height:34px}
 .insp{position:absolute;top:10px;right:10px;bottom:10px;width:310px;background:light-dark(#fffffff2,#151917f2);border-radius:12px;padding:12px;display:none;overflow:auto;box-shadow:0 6px 24px #0004}
 .insp.on{display:block}
@@ -108,7 +112,7 @@ tbody tr{cursor:pointer}
 .modal .box{background:var(--bg);border-radius:14px;padding:18px;width:min(640px,100%)}
 textarea{width:100%;height:220px;font:13px/1.4 ui-monospace,monospace;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-@media(max-width:820px){.app{grid-template-columns:1fr;height:auto}.view{order:-1;height:72vh;min-height:460px}.panel{border:0}.insp{top:auto;left:10px;right:10px;width:auto;max-height:52%}.hint{display:none}}
+@media(max-width:820px){.toast{top:56px;bottom:auto;left:10px;right:10px;max-width:none}.app{grid-template-columns:1fr;height:auto}.view{order:-1;height:72vh;min-height:460px}.panel{border:0}.insp{top:auto;left:10px;right:10px;width:auto;max-height:52%}.hint{display:none}}
 </style>
 </head>
 <body>
@@ -194,7 +198,7 @@ textarea{width:100%;height:220px;font:13px/1.4 ui-monospace,monospace;padding:10
       <h2>Build plans</h2>
       <p class="note">Each piece's near-left-bottom corner, measured from the mat's front-left corner: X across, Y back, Z up. Turn, tip and roll are degrees from lying flat along X. Tap a row to select that piece.</p>
       <div class="scroll"><table id="planTable"></table></div>
-      <h2 style="margin-top:16px">Joints</h2>
+      <h2 style="margin-top:16px">Glued assemblies</h2>
       <div id="jointList"></div>
       <div class="bar"><button id="copyPlans">Copy plans</button></div>
       <div class="msg" id="planMsg"></div>
@@ -204,7 +208,8 @@ textarea{width:100%;height:220px;font:13px/1.4 ui-monospace,monospace;padding:10
     <div class="labels" id="labels"></div>
     <div class="vbtns" id="vbtns"><button data-v="3d">3D</button><button data-v="top">Top</button><button data-v="front">Front</button><button data-v="side">Side</button><button id="lblT" aria-pressed="true">Labels</button></div>
     <div class="mode" id="mode"><span id="modeTxt"></span><button id="modeX">Cancel</button></div>
-    <div class="hint">Drag a piece to slide it · drag the mat to orbit · scroll to zoom · arrows nudge · R turns · 1 square = 1"</div>
+    <div class="hint">Slide pieces together: they stop at contact, snap flush within 1/8", and can be glued · drag the mat to orbit · scroll to zoom · 1 square = 1"</div>
+    <div class="toast" id="toast" role="status"><span id="toastTxt"></span><span id="toastBtns"><button id="tGlue" class="pri">Glue</button> <button id="tNo">Not yet</button></span></div>
     <div class="insp" id="insp">
       <div class="ih"><b id="iTitle"></b><button id="iClose" aria-label="Deselect">Done</button></div>
       <div class="isec"><div class="il">Corner position (near-left-bottom)</div>
@@ -216,10 +221,10 @@ textarea{width:100%;height:220px;font:13px/1.4 ui-monospace,monospace;padding:10
       <div class="isec"><div class="il">Move</div>
         <div class="btns"><button data-a="up">Raise</button><button data-a="dn">Lower</button><button data-a="drop">Drop to rest</button>
         <select id="snap" aria-label="Snap step" style="width:auto"><option value="0.0625">Snap 1/16"</option><option value="0.125" selected>Snap 1/8"</option><option value="0.25">Snap 1/4"</option><option value="0.5">Snap 1/2"</option><option value="1">Snap 1"</option></select></div>
-        <label class="chk"><input type="checkbox" id="together" checked> Joined pieces move and turn together</label></div>
-      <div class="isec"><div class="il">Connect and measure</div>
-        <div class="btns"><button data-a="join">Join end to…</button><button data-a="meas">Measure to…</button><button data-a="unjoin">Unjoin</button></div>
-        <div class="isz" id="iMeas"></div></div>
+</div>
+      <div class="isec"><div class="il">Glue and measure</div>
+        <div class="btns"><button data-a="glue">Glue to touching</button><button data-a="unglue">Unglue</button><button data-a="meas">Measure to…</button></div>
+        <div class="isz" id="iGlue"></div><div class="isz" id="iMeas"></div></div>
       <div class="isec"><div class="il">End cuts</div>
         <div class="isz" id="iCuts"></div>
         <div class="btns" style="margin-top:8px"><button data-a="miter">Open in miter box</button><button data-a="ret">Back to bin</button></div></div>
@@ -253,11 +258,11 @@ const dims=b=>base(b)+(cutTxt(b)?' · '+cutTxt(b):'');
 const key=b=>`${b.t}|${b.w}|${b.l}|${b.cuts&&b.cuts.length?JSON.stringify(b.cuts):''}`;
 const parse=v=>{v=String(v).trim().replace(/["”]|in/g,'').replace('−','-');if(!v)return NaN;const neg=v[0]==='-';if(neg)v=v.slice(1).trim();let m=v.match(/^(\d+)?[\s-]*(\d+)\/(\d+)$/),x=m?(+(m[1]||0))+(+m[2])/(+m[3]):parseFloat(v);return neg?-x:x};
 const deg=x=>{let d=Math.round(x/D2R*10)/10;return Object.is(d,-0)?0:d};
-let S={stock:[],bin:[],placed:[],joints:[],waste:0,next:1,no:1},undoStack=[],sel=null,selKey=null,mode=null,measure=null,showLabels=true,lastSel=null;
+let S={stock:[],bin:[],placed:[],glue:[],waste:0,next:1,no:1},undoStack=[],sel=null,selKey=null,mode=null,measure=null,showLabels=true,lastSel=null;
 let mbId=null,mbO='flat',mbE=1,mbA=0;
 
-function fresh(){return {stock:[],bin:[],placed:[],joints:[],waste:0,next:1,no:1}}
-function norm(){S.joints=S.joints||[];S.no=S.no||1;[...S.bin,...S.placed].forEach(p=>{if(!p.cuts){p.cuts=[];if(p.ends){const o=p.ax==='t'?'edge':'flat';if(+p.ends[0])p.cuts.push({e:0,o,a:+p.ends[0]*(p.flip?-1:1)});if(+p.ends[1])p.cuts.push({e:1,o,a:+p.ends[1]})}}delete p.ends;delete p.ax;delete p.flip});S.placed.forEach(p=>{if(!p.no)p.no=S.no++})}
+function fresh(){return {stock:[],bin:[],placed:[],glue:[],waste:0,next:1,no:1}}
+function norm(){S.glue=S.glue||(S.joints||[]).map(j=>[j.a,j.b]);delete S.joints;S.no=S.no||1;[...S.bin,...S.placed].forEach(p=>{if(!p.cuts){p.cuts=[];if(p.ends){const o=p.ax==='t'?'edge':'flat';if(+p.ends[0])p.cuts.push({e:0,o,a:+p.ends[0]*(p.flip?-1:1)});if(+p.ends[1])p.cuts.push({e:1,o,a:+p.ends[1]})}}delete p.ends;delete p.ax;delete p.flip});S.placed.forEach(p=>{if(!p.no)p.no=S.no++})}
 function uid(){return S.next++}
 const P=id=>S.placed.find(p=>p.id===id);
 const anyPiece=id=>S.bin.find(b=>b.id===id)||P(id);
@@ -339,10 +344,10 @@ function pieceRows(){return S.placed.slice().sort((a,b)=>a.no-b.no).map(p=>{cons
 function renderPlans(){
   const rows=pieceRows();
   $('#planTable').innerHTML=rows.length?`<thead><tr><th>Piece</th><th>Size and cuts</th><th>X</th><th>Y</th><th>Z</th><th>Turn</th><th>Tip</th><th>Roll</th></tr></thead><tbody>`+rows.map(r=>`<tr data-pid="${r.p.id}" class="${r.p.id===sel?'s':''}"><td><b>P${r.p.no}</b></td><td>${dims(r.p)}</td><td>${f16(r.X)}"</td><td>${f16(r.Y)}"</td><td>${f16(r.Z)}"</td><td>${r.turn}°</td><td>${r.tip}°</td><td>${r.roll}°</td></tr>`).join('')+'</tbody>':'<tbody><tr><td class="empty" style="white-space:normal;text-align:center">No pieces in the model yet.</td></tr></tbody>';
-  const js=liveJoints();
-  $('#jointList').innerHTML=js.length?js.map(j=>`<div class="row"><div class="d">P${P(j.a).no} end ${'AB'[j.ea]} ↔ P${P(j.b).no} end ${'AB'[j.eb]}</div><span class="n">${jointAngle(j)}° between</span></div>`).join(''):'<div class="empty">No joints yet. Select a piece and use “Join end to…”.</div>';
+  const asm=assemblies();
+  $('#jointList').innerHTML=asm.length?asm.map((g,i)=>`<div class="row"><div class="d">Assembly ${i+1}: ${g.map(id=>'P'+P(id).no).join(', ')}<small>Glue: ${S.glue.filter(([x])=>g.includes(x)).map(([x,y])=>`P${P(x).no} to P${P(y).no}`).join(' · ')}</small></div><span class="n">${g.length} pieces</span></div>`).join(''):'<div class="empty">Nothing glued yet. Slide pieces together and choose Glue.</div>';
 }
-function renderAll(){refreshJoints();renderStats();renderStock();renderCutSrc();renderBin();renderSel();renderPlans();renderMiter()}
+function renderAll(){cleanGlue();renderStats();renderStock();renderCutSrc();renderBin();renderSel();renderPlans();renderMiter()}
 
 function doCut(){
   const msg=$('#cutMsg');msg.className='msg err';
@@ -394,27 +399,63 @@ const edgeMat=new THREE.LineBasicMaterial({color:0x8a6a3c});const edgeSel=new TH
 const meshes=new Map();
 function makeMesh(p){const g=geom(p);const m=new THREE.Mesh(g,baseMat);m.castShadow=m.receiveShadow=true;m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g,10),edgeMat));m.position.fromArray(p.p);m.quaternion.fromArray(p.q);m.userData.id=p.id;m.updateMatrixWorld(true);return m}
 function regeom(id){const m=meshes.get(id),p=P(id);if(!m||!p)return;m.geometry.dispose();m.geometry=geom(p);m.children[0].geometry.dispose();m.children[0].geometry=new THREE.EdgesGeometry(m.geometry,10)}
-function rebuild(){meshes.forEach(m=>{scene.remove(m);m.geometry.dispose()});meshes.clear();S.placed.forEach(p=>{const m=makeMesh(p);meshes.set(p.id,m);scene.add(m)});refreshJoints();paintSel()}
-function paintSel(){const g=sel?group(sel):[];meshes.forEach((m,id)=>{m.material=id===sel?selMat:g.includes(id)?grpMat:baseMat;m.children[0].material=id===sel?edgeSel:edgeMat})}
+function rebuild(){meshes.forEach(m=>{scene.remove(m);m.geometry.dispose()});meshes.clear();S.placed.forEach(p=>{const m=makeMesh(p);meshes.set(p.id,m);scene.add(m)});cleanGlue();paintSel()}
+function paintSel(){const g=sel?group(sel):[];meshes.forEach((m,id)=>{m.material=id===sel?selMat:g.includes(id)?grpMat:baseMat;m.children[0].material=id===sel||id===snapOther?edgeSel:edgeMat})}
 function sync(id){const p=P(id),m=meshes.get(id);if(!p||!m)return;m.updateMatrixWorld(true);p.p=m.position.toArray().map(v=>Math.round(v*4096)/4096);p.q=m.quaternion.toArray()}
 function box(ids){const b=new THREE.Box3();ids.forEach(id=>{const m=meshes.get(id);if(m){m.updateMatrixWorld(true);b.expandByObject(m)}});return b}
 const step=()=>+$('#snap').value;
 const sn=v=>Math.round(v/step())*step();
 
-/* joints */
-function endWorld(id,e){const m=meshes.get(id);m.updateMatrixWorld(true);return endLocal(P(id),e).applyMatrix4(m.matrixWorld)}
-function axisWorld(id){return V3(1,0,0).applyQuaternion(meshes.get(id).quaternion)}
-function liveJoints(){return S.joints.filter(j=>P(j.a)&&P(j.b)&&meshes.get(j.a)&&meshes.get(j.b)&&endWorld(j.a,j.ea).distanceTo(endWorld(j.b,j.eb))<.04)}
-function jointAngle(j){const da=axisWorld(j.a).multiplyScalar(j.ea?-1:1),db=axisWorld(j.b).multiplyScalar(j.eb?-1:1);return Math.round(da.angleTo(db)/D2R*10)/10}
-const jointDots=new THREE.Group();scene.add(jointDots);
-const dotGeo=new THREE.SphereGeometry(.09,12,8),dotMat=new THREE.MeshBasicMaterial({color:0xff6a13});
-function refreshJoints(){S.joints=liveJoints();jointDots.clear();S.joints.forEach(j=>{const d=new THREE.Mesh(dotGeo,dotMat);d.position.copy(endWorld(j.a,j.ea));jointDots.add(d)})}
-function group(id){if(!$('#together').checked)return [id];const seen=new Set([id]),q=[id];while(q.length){const c=q.pop();S.joints.forEach(j=>{const o=j.a===c?j.b:j.b===c?j.a:null;if(o&&!seen.has(o)){seen.add(o);q.push(o)}})}return [...seen]}
+/* solids, collision, snapping and glue */
+const SNAP=.15,TOL=1e-3,Z0=V3(0,0,0);
+function dirs(list){const out=[];list.forEach(v=>{if(v.lengthSq()>1e-12&&!out.some(u=>Math.abs(u.dot(v))>.99999))out.push(v)});return out}
+function hull(id){const p=P(id),m=meshes.get(id);m.updateMatrixWorld(true);const M=m.matrixWorld,NM=new THREE.Matrix3().getNormalMatrix(M);
+  const faces=solid(p).map(poly=>{const pts=poly.pts.map(v=>v.clone().applyMatrix4(M)),n=polyNormal(poly.pts).applyMatrix3(NM).normalize(),c=pts.reduce((a,v)=>a.add(v),V3(0,0,0)).multiplyScalar(1/pts.length);
+    return {n,pts,c,d:n.dot(c),r:Math.max(...pts.map(v=>v.distanceTo(c))),area:polyNormal(pts).length()/2}});
+  const vs=[];faces.forEach(f=>f.pts.forEach(v=>{if(!vs.some(u=>u.distanceToSquared(v)<1e-12))vs.push(v)}));
+  return {id,faces,vs,ns:dirs(faces.map(f=>f.n)),es:dirs(faces.flatMap(f=>f.pts.map((v,i)=>f.pts[(i+1)%f.pts.length].clone().sub(v).normalize()))),bb:new THREE.Box3().setFromPoints(vs)}}
+/* separating-axis test on the real cut shapes: >0 apart, ~0 touching, <0 overlapping */
+function sep(A,B,o){const ax=[...A.ns,...B.ns];A.es.forEach(a=>B.es.forEach(b=>{const c=a.clone().cross(b);if(c.lengthSq()>1e-8)ax.push(c.normalize())}));
+  let best=-Infinity;for(const n of ax){let a0=Infinity,a1=-Infinity,b0=Infinity,b1=-Infinity;for(const v of A.vs){const p=v.dot(n);if(p<a0)a0=p;if(p>a1)a1=p}const s=o.dot(n);a0+=s;a1+=s;for(const v of B.vs){const p=v.dot(n);if(p<b0)b0=p;if(p>b1)b1=p}const g=Math.max(b0-a1,a0-b1);if(g>best){best=g;if(best>.02)return best}}return best}
+function mkCtx(ids){const g=ids.map(hull),all=[...meshes.keys()].filter(k=>!ids.includes(k)).map(hull);
+  const o=all.filter(h=>!g.some(gh=>gh.bb.intersectsBox(h.bb)&&sep(gh,h,Z0)<-TOL));
+  return {ids,g,o,minY:Math.min(...g.map(h=>h.bb.min.y)),gb:g.reduce((b,h)=>b.union(h.bb),new THREE.Box3())}}
+function hits(c,D){if(c.minY+D.y<-1e-4)return true;for(const gh of c.g){const b=gh.bb.clone().translate(D);for(const oh of c.o){if(!b.intersectsBox(oh.bb))continue;if(sep(gh,oh,D)<-TOL)return true}}return false}
+/* sweep along the path in small steps so thin pieces can't be jumped over, then home in on the contact point */
+function reach(c,from,to){const n=Math.max(1,Math.ceil(from.distanceTo(to)/.05));let prev=from.clone();
+  for(let i=1;i<=n;i++){const q=from.clone().lerp(to,i/n);if(hits(c,q)){let lo=prev,hi=q;for(let k=0;k<12;k++){const m=lo.clone().lerp(hi,.5);if(hits(c,m))hi=m;else lo=m}return lo}prev=q}return to.clone()}
+function slide(c,cur,D){const R=reach(c,cur,D);if(R.distanceTo(D)<1e-6)return R;const a=reach(c,R,V3(D.x,R.y,R.z)),b=reach(c,R,V3(R.x,R.y,D.z));return a.distanceTo(D)<b.distanceTo(D)?a:b}
+function findSnap(c,D){let best=null;
+  for(const gh of c.g){const gb=gh.bb.clone().translate(D).expandByScalar(SNAP);
+    for(const oh of c.o){if(!gb.intersectsBox(oh.bb))continue;
+      for(const fa of gh.faces)for(const fb of oh.faces){if(fa.n.dot(fb.n)>-.995)continue;const pa=fa.c.clone().add(D),gap=fb.n.dot(pa)-fb.d;if(gap<-.02||gap>SNAP)continue;
+        const diff=fb.c.clone().sub(pa),tan=diff.clone().addScaledVector(fb.n,-diff.dot(fb.n));if(tan.length()>(fa.r+fb.r)*.95)continue;
+        const ND=D.clone().addScaledVector(fb.n,-gap),ar=fa.area/fb.area;
+        if(ar>.7&&ar<1.43&&tan.length()<.3)ND.add(tan);
+        else{const g=c.gb.clone().translate(ND),ob=oh.bb;['x','y','z'].forEach(k=>{if(Math.abs(fb.n[k])>.02)return;let m=null;[ob.min[k]-g.min[k],ob.max[k]-g.max[k],ob.min[k]-g.max[k],ob.max[k]-g.min[k]].forEach(d=>{if(Math.abs(d)<SNAP&&(m===null||Math.abs(d)<Math.abs(m)))m=d});if(m!==null)ND[k]+=m})}
+        const score=Math.abs(gap)+ND.distanceTo(D)*.1;
+        if((!best||score<best.score)&&!hits(c,ND))best={D:ND,other:oh.id,score}}}}
+  return best}
+function group(id){const seen=new Set([id]),q=[id];while(q.length){const c=q.pop();S.glue.forEach(([a,b])=>{const o=a===c?b:b===c?a:null;if(o&&!seen.has(o)){seen.add(o);q.push(o)}})}return [...seen]}
+function cleanGlue(){S.glue=S.glue.filter(([a,b])=>P(a)&&P(b))}
+function assemblies(){const seen=new Set(),out=[];S.placed.slice().sort((a,b)=>a.no-b.no).forEach(p=>{if(seen.has(p.id))return;const g=group(p.id);g.forEach(i=>seen.add(i));if(g.length>1)out.push(g.sort((a,b)=>P(a).no-P(b).no))});return out}
+function touchingPairs(ids){const g=ids.map(hull),pairs=[];[...meshes.keys()].filter(k=>!ids.includes(k)).forEach(k=>{const oh=hull(k),t=g.find(gh=>gh.bb.clone().expandByScalar(.02).intersectsBox(oh.bb)&&sep(gh,oh,Z0)<=.01);if(t)pairs.push([t.id,k])});return pairs}
+let pendingGlue=null,toastT,snapOther=null;
+function showToast(t,ask){clearTimeout(toastT);$('#toastTxt').textContent=t;$('#toastBtns').style.display=ask?'':'none';$('#toast').classList.add('on');if(!ask){pendingGlue=null;toastT=setTimeout(hideToast,3500)}}
+function hideToast(){$('#toast').classList.remove('on');pendingGlue=null}
+function askGlue(ids){const pr=touchingPairs(ids);if(!pr.length)return hideToast();pendingGlue=pr;const names=[...new Set(pr.map(p=>'P'+P(p[1]).no))].join(', ');
+  showToast(`${ids.length>1?'This assembly':'P'+P(ids[0]).no} is touching ${names}. Glue ${pr.length>1?'them':'it'}?`,true)}
+function glue(pr){snap();pr.forEach(([a,b])=>{if(!S.glue.some(([x,y])=>x===a&&y===b||x===b&&y===a))S.glue.push([a,b])});hideToast();paintSel();renderAll();save()}
 function moveIds(ids,d){ids.forEach(id=>{meshes.get(id).position.add(d);sync(id)})}
-function dropIds(ids){const b=box(ids);let fl=0;meshes.forEach((o,oid)=>{if(ids.includes(oid))return;const q=box([oid]),e=1e-3;if(b.min.x<q.max.x-e&&b.max.x>q.min.x+e&&b.min.z<q.max.z-e&&b.max.z>q.min.z+e&&q.max.y<=b.min.y+.02)fl=Math.max(fl,q.max.y)});moveIds(ids,V3(0,fl-b.min.y,0))}
-function rotateIds(ids,axis,a){const y0=box(ids).min.y,R=new THREE.Quaternion().setFromAxisAngle(axis,a*D2R),piv=V3(0,0,0);box([sel]).getCenter(piv);
+function tryMove(ids,d){const c=mkCtx(ids),r=reach(c,V3(0,0,0),d);moveIds(ids,r);if(r.distanceTo(d)>1e-6)showToast('Blocked: another piece is in the way.');return r}
+function dropIds(ids){const c=mkCtx(ids);moveIds(ids,reach(c,V3(0,0,0),V3(0,-c.minY,0)))}
+function rotateIds(ids,axis,a){const c=mkCtx(ids),saved=ids.map(id=>{const m=meshes.get(id);return [m.position.clone(),m.quaternion.clone()]});
+  const R=new THREE.Quaternion().setFromAxisAngle(axis,a*D2R),piv=V3(0,0,0);box([sel]).getCenter(piv);
   ids.forEach(id=>{const m=meshes.get(id);m.quaternion.premultiply(R);m.position.sub(piv).applyQuaternion(R).add(piv);m.updateMatrixWorld(true)});
-  const y1=box(ids).min.y;moveIds(ids,V3(0,Math.max(y0,0)-y1,0))}
+  const dy=Math.max(c.minY,0)-box(ids).min.y;ids.forEach(id=>{const m=meshes.get(id);m.position.y+=dy;m.updateMatrixWorld(true)});
+  const g=ids.map(hull);
+  if(c.o.some(oh=>g.some(gh=>gh.bb.intersectsBox(oh.bb)&&sep(gh,oh,Z0)<-TOL))){ids.forEach((id,i)=>{const m=meshes.get(id);m.position.copy(saved[i][0]);m.quaternion.copy(saved[i][1]);m.updateMatrixWorld(true)});showToast('No room to turn here. Slide it clear of the other pieces first.');return false}
+  ids.forEach(sync);return true}
 
 function place(id){
   const i=S.bin.findIndex(b=>b.id===id);if(i<0)return;snap();
@@ -430,7 +471,7 @@ function place(id){
   sync(p.id);dropIds([p.id]);
   sel=p.id;paintSel();renderAll();save();
 }
-function toBin(id){const i=S.placed.findIndex(p=>p.id===id);if(i<0)return;snap();const p=S.placed.splice(i,1)[0];S.bin.push({id:p.id,t:p.t,w:p.w,l:p.l,cuts:p.cuts});const m=meshes.get(id);scene.remove(m);meshes.delete(id);sel=null;measure=null;renderAll();paintSel();save()}
+function toBin(id){const i=S.placed.findIndex(p=>p.id===id);if(i<0)return;snap();const p=S.placed.splice(i,1)[0];S.bin.push({id:p.id,t:p.t,w:p.w,l:p.l,cuts:p.cuts});S.glue=S.glue.filter(([a,b])=>a!==id&&b!==id);const m=meshes.get(id);scene.remove(m);meshes.delete(id);sel=null;measure=null;hideToast();renderAll();paintSel();save()}
 
 /* measuring */
 const mLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([V3(0,0,0),V3(0,0,0)]),new THREE.LineDashedMaterial({color:0xff6a13,dashSize:.25,gapSize:.12,depthTest:false}));mLine.renderOrder=9;mLine.visible=false;scene.add(mLine);
@@ -441,71 +482,72 @@ function measInfo(){if(!measure||!P(measure.a)||!P(measure.b))return null;const 
 /* inspector */
 function renderSel(){
   const p=P(sel);$('#insp').classList.toggle('on',!!p);if(!p){lastSel=null;return}
-  const b=box([sel]),ae=document.activeElement,e=new THREE.Euler().setFromQuaternion(meshes.get(sel).quaternion,'YXZ');
+  const b=box([sel]),ae=document.activeElement,e=new THREE.Euler().setFromQuaternion(meshes.get(sel).quaternion,'YXZ'),g=group(sel);
   $('#iTitle').textContent=`P${p.no} · ${base(p)}`;
   [['#pX',b.min.x+HALF],['#pY',HALF-b.max.z],['#pZ',b.min.y]].forEach(([s,v])=>{if(ae!==$(s))$(s).value=f16(v)});
   $('#iSize').innerHTML=`Takes up <b>${f16(b.max.x-b.min.x)}" across × ${f16(b.max.z-b.min.z)}" back × ${f16(b.max.y-b.min.y)}" tall</b>`;
-  $('#iRot').innerHTML=`Turn <b>${deg(e.y)}°</b> · tip <b>${deg(e.x)}°</b> · roll <b>${deg(e.z)}°</b>`;
+  $('#iRot').innerHTML=`Turn <b>${deg(e.y)}°</b> · tip <b>${deg(e.x)}°</b> · roll <b>${deg(e.z)}°</b>${g.length>1?' · the whole assembly turns':''}`;
+  $('#iGlue').innerHTML=g.length>1?`Glued into an assembly of <b>${g.length} pieces</b>: ${g.map(i=>'P'+P(i).no).join(', ')}. It moves as one.`:'Not glued to anything.';
   const mi=measInfo();
-  $('#iMeas').innerHTML=mi?`To <b>P${P(measure.b).no}</b>: gap <b>${f16(mi.gap.x)}"</b> across, <b>${f16(mi.gap.z)}"</b> back, <b>${f16(mi.gap.y)}"</b> up · <b>${f16(mi.dist)}"</b> straight line<br>On center: ${f16(mi.oc.x)}" across, ${f16(mi.oc.z)}" back, ${f16(mi.oc.y)}" up`:'Measure gives the clear gap between two pieces and their on-center spacing.';
+  $('#iMeas').innerHTML=mi?`To <b>P${P(measure.b).no}</b>: gap <b>${f16(mi.gap.x)}"</b> across, <b>${f16(mi.gap.z)}"</b> back, <b>${f16(mi.gap.y)}"</b> up · <b>${f16(mi.dist)}"</b> straight line<br>On center: ${f16(mi.oc.x)}" across, ${f16(mi.oc.z)}" back, ${f16(mi.oc.y)}" up`:'';
   $('#iCuts').innerHTML=p.cuts.length?p.cuts.map(c=>`<div><b>${cutName(c)}</b></div>`).join(''):'Both ends square.';
   lastSel=sel;
 }
 function setPos(){if(!sel)return;const b=box([sel]),X=parse($('#pX').value),Y=parse($('#pY').value),Z=parse($('#pZ').value);if([X,Y,Z].some(isNaN))return renderSel();
-  snap();moveIds(group(sel),V3(X-HALF-b.min.x,Z-b.min.y,(HALF-Y)-b.max.z));renderAll();save()}
+  const ids=group(sel),c=mkCtx(ids),D=V3(X-HALF-b.min.x,Z-b.min.y,(HALF-Y)-b.max.z);
+  if(hits(c,D)){showToast('That spot is taken by another piece (or is below the mat).');return renderSel()}
+  snap();moveIds(ids,D);askGlue(ids);renderAll();save()}
 ['#pX','#pY','#pZ'].forEach(s=>{$(s).addEventListener('change',setPos);$(s).addEventListener('keydown',e=>{if(e.key==='Enter')e.target.blur()})});
 const AX=V3(1,0,0),AY=V3(0,1,0),AZ=V3(0,0,1);
-function setMode(m){mode=m;$('#mode').classList.toggle('on',!!m);$('#modeTxt').textContent=m==='join'?`Click the piece to join P${P(sel).no} to, near the end you want`:m==='meas'?`Click the piece to measure to from P${P(sel).no}`:''}
+function setMode(m){mode=m;$('#mode').classList.toggle('on',!!m);$('#modeTxt').textContent=m==='meas'?`Click the piece to measure to from P${P(sel).no}`:''}
 $('#modeX').addEventListener('click',()=>setMode(null));
 $('#iClose').addEventListener('click',()=>{sel=null;measure=null;setMode(null);paintSel();renderAll()});
-$('#together').addEventListener('change',paintSel);
+$('#tGlue').addEventListener('click',()=>{if(pendingGlue)glue(pendingGlue)});
+$('#tNo').addEventListener('click',hideToast);
 $('#insp').addEventListener('click',e=>{const a=e.target.closest('button')?.dataset.a;if(!a||!sel)return;
   if(a==='ret')return toBin(sel);
   if(a==='miter'){mbId=sel;renderMiter();return showTab('miter')}
-  if(a==='join'||a==='meas')return setMode(a);
+  if(a==='meas')return setMode(a);
   const ang=+$('#rAng').value||0,ids=group(sel);
-  if(a==='unjoin'){snap();S.joints=S.joints.filter(j=>j.a!==sel&&j.b!==sel)}
-  else{snap();
-    if(a==='turn+')rotateIds(ids,AY,ang);if(a==='turn-')rotateIds(ids,AY,-ang);if(a==='tip+')rotateIds(ids,AX,-ang);if(a==='tip-')rotateIds(ids,AX,ang);if(a==='roll+')rotateIds(ids,AZ,ang);if(a==='roll-')rotateIds(ids,AZ,-ang);
-    if(a==='up')moveIds(ids,V3(0,step(),0));if(a==='dn'){const b=box(ids);moveIds(ids,V3(0,-Math.min(step(),Math.max(0,b.min.y)),0))}if(a==='drop')dropIds(ids)}
+  if(a==='glue'){const pr=touchingPairs(ids);if(!pr.length)return showToast('Nothing is touching this piece. Slide it against another piece first.');return glue(pr)}
+  if(a==='unglue'){if(ids.length<2)return showToast('This piece isn\'t glued to anything.');snap();S.glue=S.glue.filter(([x,y])=>x!==sel&&y!==sel);hideToast();paintSel();renderAll();save();return}
+  snap();let ok=true;
+  if(a==='turn+')ok=rotateIds(ids,AY,ang);if(a==='turn-')ok=rotateIds(ids,AY,-ang);if(a==='tip+')ok=rotateIds(ids,AX,-ang);if(a==='tip-')ok=rotateIds(ids,AX,ang);if(a==='roll+')ok=rotateIds(ids,AZ,ang);if(a==='roll-')ok=rotateIds(ids,AZ,-ang);
+  if(a==='up')tryMove(ids,V3(0,step(),0));if(a==='dn')tryMove(ids,V3(0,-step(),0));if(a==='drop')dropIds(ids);
+  if(!ok)undoStack.pop();else if(a==='dn'||a==='drop')askGlue(ids);
   renderAll();save()});
-function doJoin(bid,pt){
-  const a=sel,eb=endWorld(bid,0).distanceTo(pt)<endWorld(bid,1).distanceTo(pt)?0:1,tgt=endWorld(bid,eb);
-  const ea=endWorld(a,0).distanceTo(tgt)<endWorld(a,1).distanceTo(tgt)?0:1;
-  snap();let ids=group(a);if(ids.includes(bid))ids=[a];
-  moveIds(ids,tgt.clone().sub(endWorld(a,ea)));
-  S.joints=S.joints.filter(j=>!(j.a===a&&j.ea===ea||j.b===a&&j.eb===ea));S.joints.push({a,ea,b:bid,eb});
-  paintSel();renderAll();save();
-}
 
-/* pointer */
+/* pointer: drag pieces on a horizontal plane; they stop at contact and snap flush */
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();let drag=null,down=null;
 function setNdc(e){const r=renderer.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,cam)}
 renderer.domElement.addEventListener('pointerdown',e=>{
   setNdc(e);down={x:e.clientX,y:e.clientY};
   const hit=ray.intersectObjects([...meshes.values()],false)[0];
-  if(mode){if(hit&&hit.object.userData.id!==sel){const id=hit.object.userData.id;if(mode==='join')doJoin(id,hit.point);else{measure={a:sel,b:id};renderSel()}setMode(null)}down=null;return}
+  if(mode){if(hit&&hit.object.userData.id!==sel){measure={a:sel,b:hit.object.userData.id};renderSel()}setMode(null);down=null;return}
   if(!hit)return;
   const m=hit.object;if(sel!==m.userData.id){sel=m.userData.id;if(measure&&measure.a!==sel)measure=null}paintSel();renderSel();renderPlans();snap();
   const plane=new THREE.Plane(V3(0,1,0),-hit.point.y),pt=V3(0,0,0);ray.ray.intersectPlane(plane,pt);
   const b=box([sel]),ids=group(sel);
-  drag={m,ids,start:ids.map(id=>meshes.get(id).position.clone()),s0:m.position.clone(),plane,off:pt.clone().sub(m.position),hx:m.position.x-b.min.x,hz:m.position.z-b.min.z,moved:false};
+  drag={m,ids,c:mkCtx(ids),start:ids.map(id=>meshes.get(id).position.clone()),s0:m.position.clone(),plane,off:pt.clone().sub(m.position),hx:m.position.x-b.min.x,hz:m.position.z-b.min.z,cur:V3(0,0,0),moved:false};
   ctl.enabled=false;renderer.domElement.setPointerCapture(e.pointerId);
 });
 renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;setNdc(e);const pt=V3(0,0,0);if(!ray.ray.intersectPlane(drag.plane,pt))return;
-  const nx=sn(pt.x-drag.off.x-drag.hx)+drag.hx,nz=sn(pt.z-drag.off.z-drag.hz)+drag.hz,dx=nx-drag.s0.x,dz=nz-drag.s0.z;
-  drag.ids.forEach((id,i)=>{meshes.get(id).position.set(drag.start[i].x+dx,drag.start[i].y,drag.start[i].z+dz);sync(id)});drag.moved=true;renderSel()});
+  const nx=sn(pt.x-drag.off.x-drag.hx)+drag.hx,nz=sn(pt.z-drag.off.z-drag.hz)+drag.hz;
+  let R=slide(drag.c,drag.cur,V3(nx-drag.s0.x,0,nz-drag.s0.z));const s=findSnap(drag.c,R);
+  if(s){R=s.D;snapOther=s.other}else snapOther=null;
+  drag.cur=R;drag.ids.forEach((id,i)=>{const m=meshes.get(id);m.position.copy(drag.start[i]).add(R);m.updateMatrixWorld(true)});drag.moved=true;paintSel();renderSel()});
 renderer.domElement.addEventListener('pointerup',e=>{
-  if(drag){if(!drag.moved)undoStack.pop();drag=null;ctl.enabled=true;renderAll();save();return}
+  if(drag){const ids=drag.ids,moved=drag.moved;drag=null;ctl.enabled=true;snapOther=null;
+    if(!moved)undoStack.pop();else{ids.forEach(sync);askGlue(ids)}paintSel();renderAll();save();return}
   if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<5){sel=null;measure=null;paintSel();renderAll()}
 });
 addEventListener('keydown',e=>{
   if(e.target.matches('input,select,textarea'))return;
   if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();return undo()}
-  if(e.key==='Escape'){setMode(null);return}
+  if(e.key==='Escape'){setMode(null);hideToast();return}
   if(!sel)return;const s=step(),mv={ArrowLeft:[-s,0],ArrowRight:[s,0],ArrowUp:[0,-s],ArrowDown:[0,s]}[e.key];
-  if(mv){e.preventDefault();snap();moveIds(group(sel),V3(mv[0],0,mv[1]));renderAll();save()}
-  if(e.key==='r'||e.key==='R'){snap();rotateIds(group(sel),AY,(e.shiftKey?-1:1)*(+$('#rAng').value||15));renderAll();save()}
+  if(mv){e.preventDefault();snap();const ids=group(sel);tryMove(ids,V3(mv[0],0,mv[1]));askGlue(ids);renderAll();save()}
+  if(e.key==='r'||e.key==='R'){snap();if(!rotateIds(group(sel),AY,(e.shiftKey?-1:1)*(+$('#rAng').value||15)))undoStack.pop();renderAll();save()}
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();toBin(sel)}
 });
 
@@ -630,7 +672,7 @@ $('#ioLoad').addEventListener('click',()=>{try{const d=JSON.parse($('#io').value
 $('#copyCut').addEventListener('click',()=>{const g=groups([...S.bin,...S.placed]);
   copy('Cut list\n'+g.map(x=>`${x.items.length} × ${base(x)}  (${x.items.filter(i=>i.p).length} in model)${x.cuts.length?'\n    '+x.cuts.map(cutName).join('\n    '):''}`).join('\n')+`\nScrap: ${S.waste.toFixed(1)} sq in`,$('#binMsg'))});
 $('#copyPlans').addEventListener('click',()=>{const rows=pieceRows();
-  copy(['Piece\tSize\tCuts\tX across\tY back\tZ up\tTurn\tTip\tRoll',...rows.map(r=>`P${r.p.no}\t${base(r.p)}\t${r.p.cuts.map(cutName).join('; ')||'square'}\t${f16(r.X)}"\t${f16(r.Y)}"\t${f16(r.Z)}"\t${r.turn}°\t${r.tip}°\t${r.roll}°`),'','Joints',...S.joints.map(j=>`P${P(j.a).no} end ${'AB'[j.ea]} to P${P(j.b).no} end ${'AB'[j.eb]}\t${jointAngle(j)}°`)].join('\n'),$('#planMsg'))});
+  copy(['Piece\tSize\tCuts\tX across\tY back\tZ up\tTurn\tTip\tRoll',...rows.map(r=>`P${r.p.no}\t${base(r.p)}\t${r.p.cuts.map(cutName).join('; ')||'square'}\t${f16(r.X)}"\t${f16(r.Y)}"\t${f16(r.Z)}"\t${r.turn}°\t${r.tip}°\t${r.roll}°`),'','Glued assemblies',...assemblies().map((g,i)=>`Assembly ${i+1}\t${g.map(id=>'P'+P(id).no).join(', ')}\tGlue: ${S.glue.filter(([x])=>g.includes(x)).map(([x,y])=>`P${P(x).no} to P${P(y).no}`).join('; ')}`)].join('\n'),$('#planMsg'))});
 
 /* start */
 let saved=null;try{saved=JSON.parse(localStorage.getItem('balsa-builder-v3')||localStorage.getItem('balsa-builder-v2')||localStorage.getItem('balsa-builder-v1'))}catch(e){}
